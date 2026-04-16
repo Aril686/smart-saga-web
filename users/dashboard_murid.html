@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Saga | Dashboard Absensi</title>
+  <link rel="stylesheet" href="../cssFolder/dashboard.css"/>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h1>🫡 Smart Saga Dashboard</h1>
+  <div id="realtime-clock">00:00:00</div>
+</div>
+
+  </div>
+
+  <div class="main-content">
+
+    <!-- KIRI -->
+    <div class="card">
+
+      <div class="dashboard-header">
+        <h2>📊 Dashboard Absensi</h2>
+        <a href="../public/login.html" class="logout-btn">🚪 Logout</a>
+      </div>
+
+      <!-- TAP TERBARU -->
+      <div class="latest-tap">
+        <h3>🔔 Tap Terbaru</h3>
+        <ul id="tapList">
+          <li>Belum ada data</li>
+        </ul>
+      </div>
+
+      <!-- ABSEN MANUAL -->
+      <div class="card" style="margin-top:20px;">
+        <h3>📝 Absen Manual</h3>
+
+        <form id="formManual" onsubmit="event.preventDefault(); absenNama();">
+  <input type="text" id="namaInput" placeholder="Ketik nama..." />
+  
+  <button type="submit">Absen</button>
+</form>
+
+        <div id="btnAbsen" class="success" style="display:none;">
+          ✅ Absen berhasil ditambahkan
+        </div>
+      </div>
+
+    </div>
+
+    <!-- KANAN -->
+    <div>
+
+      <!-- IZIN -->
+      <div class="card">
+        <h3>📄 Pengajuan Izin</h3>
+
+       <form id="formIzin">
+          <input type="text" id="nama_siswa" placeholder="Nama siswa" required>
+
+          <select id="kelas_siswa" required>
+            <option value="">-- Pilih Kelas --</option>
+            <optgroup label="RPL">
+              <option>10 RPL 1</option><option>10 RPL 2</option><option>10 RPL 3</option>
+              <option>11 RPL 1</option><option>11 RPL 2</option><option>11 RPL 3</option>
+            </optgroup>
+            <optgroup label="PH">
+              <option>10 PH 1</option><option>10 PH 2</option><option>10 PH 3</option>
+              <option>11 PH 1</option><option>11 PH 2</option><option>11 PH 3</option>
+            </optgroup>
+            <optgroup label="TO">
+              <option>10 TO 1</option><option>10 TO 2</option><option>10 TO 3</option>
+              <option>11 TO 1</option><option>11 TO 2</option><option>11 TO 3</option>
+            </optgroup>
+            <optgroup label="MP">
+              <option>10 MP 1</option><option>10 MP 2</option><option>10 MP 3</option>
+              <option>11 MP 1</option><option>11 MP 2</option><option>11 MP 3</option>
+            </optgroup>
+          </select>
+
+          <textarea rows="3" id="alasan" placeholder="Alasan izin" required></textarea>
+
+          <input id="bukti" type="file" accept="image/*,.pdf">
+          <small style="display: block; margin-top: 5px; color: #666;">Format: JPG, PNG, atau PDF (maks. 5MB)</small>
+
+          <button type="submit">📤 Kirim Pengajuan</button>
+        </form>
+
+        <div class="success" id="success">✅ Pengajuan berhasil dikirim</div>
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../jsScript/dashboard.js"></script>
+
+</body>
+</html>

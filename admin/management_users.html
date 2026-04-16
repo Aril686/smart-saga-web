@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Saga | Manajemen Pengguna</title>
+  <link rel="stylesheet" href="../cssFolder/management_users.css"/>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-header" style="text-align: center; margin-bottom: 25px;">
+    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #3b82f6, #6366f1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; margin: 0 auto 10px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">SS</div>
+    <h2 style="font-size: 1.2rem; color: #1e293b !important; margin: 0; font-weight: 700;">Smart <span style="color: #3b82f6;">Saga</span></h2>
+    <div id="hello-user" style="font-size: 0.85rem; color: #64748b; font-weight: 500; margin-top: 5px;">Admin Panel</div>
+  </div>
+  <a href="admin.html">📊 Dashboard</a>
+  <a href="kartu.html">➕ Kartu Siswa</a>
+  <a href="tambah_user.html">👤 Tambah Pengguna</a>
+  <a href="izin.html">📄 Izin Siswa</a>
+  <a href="management_users.html">👥 Manajemen Pengguna</a>
+  <a href="rekap_data.html">📂 Rekap Data</a>
+  <a href="setting_jam.html">⏰ Setting Jam</a>
+
+  <div class="sidebar-bottom">
+    <a href="login.html">🚪 Logout</a>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+  <div class="navbar">👥 Manajemen Pengguna</div>
+
+  <div class="container">
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="data-users"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT -->
+<div id="modal">
+  <div id="modalContent">
+    <h3>Edit User</h3>
+    <input type="text" id="editUsername" placeholder="Username" />
+    <input type="password" id="editPassword" placeholder="Password baru (opsional)" />
+    <select id="editRole">
+      <option value="1">Admin</option>
+      <option value="2">User</option>
+      <option value="3">Murid</option>
+    </select>
+    <button id="saveBtn">Simpan</button>
+    <button id="cancelBtn">Batal</button>
+  </div>
+</div>
+
+<script src="../jsScript/management_users.js"></script>
+
+</body>
+</html>

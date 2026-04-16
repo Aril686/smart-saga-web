@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Saga | Dashboard Absensi</title>
+  <link rel="stylesheet" href="../cssFolder/dashboard.css"/>
+</head>
+
+<body>
+
+<div class="navbar">
+  <div class="logo-container">
+    <h1>🫡 Smart Saga Dashboard</h1>
+  </div>
+  <div class="time-display" id="realtime-clock">00:00:00</div>
+</div>
+
+<div class="container">
+
+  <div class="stats-grid">
+    <div class="stat-card hadirPersen">
+      <div class="stat-title" >Persentase Kehadiran</div>
+      <div id="persentase-kehadiran" class="stat-value"></div>
+    </div>
+    <div class="stat-card hadir">
+      <div class="stat-title">Hadir Hari Ini</div>
+      <div id="total-hadir" class="stat-value"></div>
+    </div>
+    <div class="stat-card izin">
+      <div class="stat-title">Izin Hari Ini</div>
+      <div id="total-izin" class="stat-value"></div>
+    </div>
+    <div class="stat-card alpha">
+      <div class="stat-title">Alpha Hari Ini</div>
+      <div id="total-alpha" class="stat-value"></div>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <div class="card">
+      <div class="dashboard-header">
+        <div class="dashboard-title">
+          📊 Dashboard Absensi Smart Saga
+        </div>
+        <div class="logout-button">
+          <a href="../public/login.html" class="logout-btn">🚪 Logout</a>
+        </div>
+      </div>
+
+      <div class="latest-tap" style="margin-bottom: 20px;">
+        <h2>🔔 Tap Terbaru</h2>
+        <p>Menunggu data...</p>
+      </div>
+
+      <button onclick="openIzinPopup()" style="margin-top: 10px; margin-bottom: 5px;">📋 Lihat Riwayat Izin</button>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2 style="font-size: 1.5rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+          📄 Pengajuan Izin Siswa
+        </h2>
+
+        <form id="formIzin">
+          <input type="text" id="nama_siswa" placeholder="Nama siswa" required>
+
+          <select id="kelas_siswa" required>
+            <option value="">-- Pilih Kelas --</option>
+            <optgroup label="RPL">
+              <option>10 RPL 1</option><option>10 RPL 2</option><option>10 RPL 3</option>
+              <option>11 RPL 1</option><option>11 RPL 2</option><option>11 RPL 3</option>
+            </optgroup>
+            <optgroup label="PH">
+              <option>10 PH 1</option><option>10 PH 2</option><option>10 PH 3</option>
+              <option>11 PH 1</option><option>11 PH 2</option><option>11 PH 3</option>
+            </optgroup>
+            <optgroup label="TO">
+              <option>10 TO 1</option><option>10 TO 2</option><option>10 TO 3</option>
+              <option>11 TO 1</option><option>11 TO 2</option><option>11 TO 3</option>
+            </optgroup>
+            <optgroup label="MP">
+              <option>10 MP 1</option><option>10 MP 2</option><option>10 MP 3</option>
+              <option>11 MP 1</option><option>11 MP 2</option><option>11 MP 3</option>
+            </optgroup>
+          </select>
+
+          <textarea rows="3" id="alasan" placeholder="Alasan izin" required></textarea>
+
+          <input id="bukti" type="file" accept="image/*,.pdf">
+          <small style="display: block; margin-top: 5px; color: #666;">Format: JPG, PNG, atau PDF (maks. 5MB)</small>
+
+          <button type="submit">📤 Kirim Pengajuan</button>
+        </form>
+
+        <div class="success" id="success">✅ Pengajuan berhasil dikirim</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Riwayat Izin -->
+<div id="izinModal" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📋 Riwayat Izin</h3>
+      <button class="modal-close" onclick="closeIzinPopup()">×</button>
+    </div>
+    
+    <div class="modal-content">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Kelas</th>
+              <th>Tanggal</th>
+              <th>Alasan</th>
+              <th>Bukti</th>
+            </tr>
+          </thead>
+          <tbody id="izinTable">
+            <!-- Data akan dimasukkan oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeIzinPopup()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script src="../jsScript/dashboard.js"></script>
+</body>
+</html>

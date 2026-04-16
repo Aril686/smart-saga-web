@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Saga | Kartu Siswa</title>
+  <link rel="stylesheet" href="../cssFolder/tambah_user.css"/>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header" style="text-align: center; margin-bottom: 25px;">
+    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #3b82f6, #6366f1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; margin: 0 auto 10px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">SS</div>
+    <h2 style="font-size: 1.2rem; color: #1e293b !important; margin: 0; font-weight: 700;">Smart <span style="color: #3b82f6;">Saga</span></h2>
+    <div id="hello-user" style="font-size: 0.85rem; color: #64748b; font-weight: 500; margin-top: 5px;">Admin Panel</div>
+  </div>
+  <a href="admin.html">📊 Dashboard</a>
+  <a href="kartu.html">➕ Kartu Siswa</a>
+  <a href="tambah_user.html">👤 Tambah Pengguna</a>
+  <a href="izin.html">📄 Izin Siswa</a>
+  <a href="management_users.html">👥 Manajemen Pengguna</a>
+  <a href="rekap_data.html">📂 Rekap Data</a>
+  <a href="setting_jam.html">⏰ Setting Jam</a>
+
+  <!-- LOGOUT -->
+  <div class="sidebar-bottom">
+    <a href="login.html" class="" onclick="logout()">🚪 Logout</a>
+  </div>
+  
+</div>
+
+
+<div class="content">
+  <div class="navbar">👤 Tambah Pengguna</div>
+
+  <div class="container">
+    <div class="card">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="Masukkan Username">
+
+      <label>Password</label>
+      <input type="text" id="password" placeholder="Masukkan Password">
+
+      <select id="roles_id" style="width:100%; padding:12px; margin-top:8px; border-radius:8px; border:1px solid #ddd;">
+        <option value="">-- Pilih Role --</option>
+        <option value="1">Admin</option>
+        <option value="2">User</option>
+        <option value="3">Murid</option>
+      </select>
+
+      <button onclick="simpanUsers()">Simpan Data</button>
+    </div>
+  </div>
+</div>
+
+<script src="../jsScript/tambah_user.js"></script>
+
+
+</body>
+</html>

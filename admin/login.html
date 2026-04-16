@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Saga | Konfigurasi</title>
+  <link rel="stylesheet" href="../cssFolder/login.css"/>
+</head>
+<body>
+  <div class="config-container">
+    <div class="logo">
+      <h1>Konfigurasi Broker</h1>
+      <p style="color:#666;">Isi detail server untuk koneksi</p>
+    </div>
+
+    <form action="/login-broker" method="POST">
+      <div class="form-group">
+        <label>User</label>
+        <input type="text" name="user" required placeholder="Username">
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="Password">
+      </div>
+
+      <div class="form-group">
+        <label>Host</label>
+        <input type="text" name="host" required placeholder="contoh: cloudabsensi">
+      </div>
+
+      <div class="form-group">
+        <label>Virtual Host</label>
+        <input type="text" name="virtual_host" placeholder="contoh: /absensi">
+      </div>
+
+      <div class="form-group">
+        <label>Queues-Device</label>
+        <input type="text" name="queue_device" required placeholder="contoh: absensi/service">
+      </div>
+
+      <button type="submit" class="btn-save">Simpan Konfigurasi</button>
+    </form>
+  </div>
+</body>
+</html>

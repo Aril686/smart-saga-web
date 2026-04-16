@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Saga | Dashboard Absensi</title>
+  <link rel="stylesheet" href="../cssFolder/admin.css"/>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-header" style="text-align: center; margin-bottom: 25px;">
+    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #3b82f6, #6366f1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; margin: 0 auto 10px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">SS</div>
+    <h2 style="font-size: 1.2rem; color: #1e293b !important; margin: 0; font-weight: 700;">Smart <span style="color: #3b82f6;">Saga</span></h2>
+    <div id="hello-user" style="font-size: 0.85rem; color: #64748b; font-weight: 500; margin-top: 5px;">Admin Panel</div>
+  </div>
+
+  <a href="admin.html">📊 Dashboard</a>
+  <a href="kartu.html">➕ Kartu Siswa</a>
+  <a href="tambah_user.html">👤 Tambah Pengguna</a>
+  <a href="izin.html">📄 Izin Siswa</a>
+  <a href="management_users.html">👥 Manajemen Pengguna</a>
+  <a href="rekap_data.html">📂 Rekap Data</a>
+  <a href="setting_jam.html">⏰ Setting Jam</a>
+
+  <!-- LOGOUT -->
+  <div class="sidebar-bottom">
+    <a href="login.html" class="" onclick="logout()">🚪 Logout</a>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <div class="navbar">
+    <h1>📊 Dashboard Absensi Smart Saga</h1>
+    <div class="time-display" id="realtime-clock">00:00:00</div>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card hadir">
+        <div class="stat-title">Persentase Kehadiran</div>
+        <div class="stat-value" id="persentase-kehadiran">0%</div>
+      </div>
+
+      <div class="stat-card hadir">
+        <div class="stat-title">Hadir Hari Ini</div>
+        <div class="stat-value" id="total-hadir">0%</div>
+      </div>
+
+      <div class="stat-card izin">
+        <div class="stat-title">Izin Hari Ini</div>
+        <div class="stat-value" id="total-izin">0%</div>
+      </div>
+
+      <div class="stat-card alpha">
+        <div class="stat-title">Alpha Hari Ini</div>
+        <div class="stat-value" id="total-alpha">0%</div>
+      </div>
+    </div>
+
+    <!-- KONTEN -->
+    <div class="main-content">
+
+      <!-- ABSENSI PER KELAS -->
+      <div class="card">
+        <h2>Daftar Absensi Per Kelas</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>MAC</th>
+              <th>Tanggal</th>
+              <th>Masuk</th>
+              <th>Status</th>
+              <th>kelas</th>
+            </tr>
+          </thead>
+          <tbody id="absensi-body"></tbody>
+        </table>
+      </div>
+
+      <div class="latest-tap">
+        <h2>🔔 Tap Terbaru</h2>
+        <p>Menunggu data...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../jsScript/admin.js"></script>
+
+</body>
+</html>

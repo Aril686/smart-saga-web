@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Saga | Login Sir</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      /* Vibrant animated pastel gradient background */
+      background: linear-gradient(-45deg, #FF9A9E, #FECFEF, #A1C4FD, #C2E9FB);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .config-container {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      width: 420px;
+      padding: 40px;
+      transition: transform 0.3s ease;
+    }
+    
+    .config-container:hover {
+      transform: translateY(-5px);
+    }
+
+    .logo { text-align: center; margin-bottom: 30px; }
+    .logo h1 { 
+      color: #333; 
+      font-size: 2.2rem; 
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    .logo p {
+      color: #555;
+      font-size: 0.95rem;
+    }
+    
+    .form-group { margin-bottom: 22px; }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #444;
+      font-size: 0.9rem;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 12px;
+      font-size: 15px;
+      color: #333;
+      transition: all 0.3s ease;
+    }
+    
+    .form-group input::placeholder {
+      color: #888;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.9);
+      border-color: #A1C4FD;
+      box-shadow: 0 0 0 4px rgba(161, 196, 253, 0.3);
+    }
+    
+    .btn-save {
+      background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+      color: white;
+      border: none;
+      padding: 15px;
+      width: 100%;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+    
+    .btn-save:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+      background: linear-gradient(135deg, #764BA2 0%, #667EEA 100%);
+    }
+  </style>
+</head>
+<body>
+  <div class="config-container">
+    <div class="logo">
+      <h1>LOGIN SIR</h1>
+      <p style="color:#666;">Isi sesuai username dan password yang telah di berikan!</p>
+    </div>
+
+    <form id="loginForm" action="/login" method="POST" >
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required placeholder="Username">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required placeholder="Password">
+      </div>
+
+      <button type="submit" class="btn-save">LOGIN</button>
+    </form>
+  </div>
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("loginForm");
+
+  if (!form) {
+    console.error("Form login tidak ditemukan!");
+    return;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+      alert("Username dan password wajib diisi!");
+      return;
+    }
+
+    try {
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      // 🔥 AMAN: cek content-type dulu
+      const contentType = res.headers.get("content-type");
+      let data = {};
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        throw new Error("Response bukan JSON");
+      }
+
+      if (!res.ok) {
+        alert(data.message || "Login gagal");
+        return;
+      }
+
+      alert("✅ " + data.message);
+
+      // 🔁 redirect DI FRONTEND
+      if (data.role === "admin") {
+        window.location.href = "/admin/login.html";
+      } else if (data.role === "user") {
+        window.location.href = "/users/dashboard.html";
+      } else {
+        window.location.href = "/users/dashboard_murid.html"
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert("❌ Server tidak merespon / response tidak valid");
+    }
+  });
+});
+</script>
+</body>
+</html>
