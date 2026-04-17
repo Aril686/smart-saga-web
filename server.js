@@ -12,7 +12,7 @@ const ExcelJs = require("exceljs");
 const auth = require("./auth");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // ====================== MIDDLEWARE ======================
 app.use(express.urlencoded({ extended: true }));
@@ -26,68 +26,76 @@ app.use(
   })
 );
 
-// BYPASS PROTECTION GLOBAL
-app.use((req, res, next) => {
-  const publicPaths = [
-    "/login.html",
-    "/login",
-    "/login-broker",
-    "/cssFolder",
-    "/jsScript",
-    "/uploads",
-    "/public"
-  ];
-
-  const isPublic = req.path === "/" || publicPaths.some(path => req.path.startsWith(path));
-
-  if (isPublic) return next();
-
-  if (!req.session.user) {
-    return res.redirect("/");
-  }
-
-  next();
-});
-
-// 🔥 STATIC TARUH DI BAWAH (WAJIB!)
-app.use(express.static(__dirname));
+// ====================== PUBLIC ROUTES & ASSETS ======================
+// Langsung layani aset publik agar tidak terkena redirect login
+app.use("/public", express.static(path.join(__dirname, "public")));
+app.use("/cssFolder", express.static(path.join(__dirname, "cssFolder")));
+app.use("/jsScript", express.static(path.join(__dirname, "jsScript")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ========== multer =======
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + path.extname(file.originalname);
-    cb(null, uniqueName);
-  }
-});
-
-const upload = multer({
-  storage: storage
-});
-
-// ====================== ROUTE =========================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/login.html"));
 });
 
-// ====================== DATABASE ======================
+// Otomatis arahkan jika akses /login lewat browser (GET)
+app.get("/login", (req, res) => res.redirect("/"));
+
+// Log Request Sederhana (Membantu Debugging Lokal)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// ====================== AUTH MIDDLEWARE ======================
+app.use((req, res, next) => {
+  const publicPaths = ["/login", "/login-broker", "/cssFolder", "/jsScript", "/uploads", "/public", "/favicon.ico"];
+  
+  // Kecualikan rute publik & root
+  if (req.path === "/" || publicPaths.some(p => req.path.startsWith(p))) {
+    return next();
+  }
+
+  // Cek session
+  if (!req.session.user) {
+    return res.redirect("/");
+  }
+  next();
+});
+
+// Helper untuk Dashboard
+app.get("/admin", auth("admin"), (req, res) => res.sendFile(path.join(__dirname, "admin/admin.html")));
+app.get("/users", auth(["user", "murid"]), (req, res) => res.sendFile(path.join(__dirname, "users/dashboard.html")));
+
+// Proteksi folder statis admin & users
+app.use("/admin", auth("admin"), express.static(path.join(__dirname, "admin")));
+app.use("/users", auth(["user", "murid"]), express.static(path.join(__dirname, "users")));
+
+// Fallback untuk file root jika diperlukan
+app.use(express.static(__dirname));
+
+// ========== multer =======
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
+});
+const upload = multer({ storage });
+
+// ====================== DATABASE (REKAYASA RAILWAY ENV) ======================
 const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "db_smart-saga(new)",
+  host: process.env.MYSQLHOST || "localhost",
+  user: process.env.MYSQLUSER || "root",
+  password: process.env.MYSQLPASSWORD || "",
+  database: process.env.MYSQLDATABASE || "db_smart-saga(new)",
+  port: process.env.MYSQLPORT || 3306,
 };
 
-// ====================== MQTT ======================
+// ====================== MQTT (REKAYASA RAILWAY ENV) ======================
 const mqttConfig = {
-  mqtt_server: "d4074ff835754387b943f21e95168512.s1.eu.hivemq.cloud",
-  mqtt_port: 8883,
-  mqtt_user: "school-absensi",
-  mqtt_password: "School12",
-  mqtt_topic: "absensi/rfid",
+  mqtt_server: process.env.MQTT_SERVER || "d4074ff835754387b943f21e95168512.s1.eu.hivemq.cloud",
+  mqtt_port: process.env.MQTT_PORT || 8883,
+  mqtt_user: process.env.MQTT_USER || "school-absensi",
+  mqtt_password: process.env.MQTT_PASSWORD || "School12",
+  mqtt_topic: process.env.MQTT_TOPIC || "absensi/rfid",
 };
 
 let mqttClient = null;

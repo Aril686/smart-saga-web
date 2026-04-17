@@ -11,9 +11,12 @@ module.exports = function auth(role) {
       return res.redirect("/");
     }
 
-    // role tidak sesuai
-    if (role && req.session.user.role !== role) {
-      return res.status(403).send("Akses ditolak");
+    // role tidak sesuai (mendukung string tunggal atau array of roles)
+    if (role) {
+      const roles = Array.isArray(role) ? role : [role];
+      if (!roles.includes(req.session.user.role)) {
+        return res.status(403).send("Akses ditolak");
+      }
     }
 
     next();
