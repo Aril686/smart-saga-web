@@ -73,7 +73,12 @@ app.use("/users", auth(["user", "murid"]), express.static(path.join(__dirname, "
 // Fallback untuk file root jika diperlukan
 app.use(express.static(__dirname));
 
-// ========== multer =======
+// Pastikan folder uploads ada
+const fs = require("fs");
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
@@ -90,8 +95,6 @@ const poolConfig = process.env.MYSQL_URL || {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  // Penting untuk MySQL 8 di Cloud
-  allowPublicKeyRetrieval: true,
   ssl: process.env.MYSQL_URL ? { rejectUnauthorized: false } : false
 };
 
@@ -911,8 +914,15 @@ app.get("/api/export_excelBulan", auth("admin"), async (req, res) => {
   }
 });
 
+// Middleware untuk log setiap request yang masuk
+app.use((req, res, next) => {
+  console.log(`🌐 [${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // ====================== START SERVER ======================
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Smart Saga Server Ready!`);
+  console.log(`📡 Listening on PORT: ${PORT}`);
   initMQTT();
 });
