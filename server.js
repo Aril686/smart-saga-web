@@ -929,6 +929,11 @@ app.listen(PORT, "0.0.0.0", () => {
     try {
       const conn = await pool.getConnection();
       console.log("✅ DATABASE CONNECTED (Pool Ready)");
+      
+      // Detektif Tabel: Lihat apa saja yang ada di dalam database
+      const [tables] = await conn.query("SHOW TABLES");
+      console.log("tbl 📊 Daftar Tabel Ditemukan:", tables.map(t => Object.values(t)[0]).join(", ") || "KOSONG/TIDAK ADA TABEL");
+      
       conn.release();
     } catch (err) {
       console.error("❌ DATABASE INITIAL CONNECTION ERROR:", err.message);
