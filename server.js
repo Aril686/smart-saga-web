@@ -20,7 +20,7 @@ app.use(express.json());
 
 app.use(
   session({
-    secret: "smart-saga-secret",
+    secret: process.env.SESSION_SECRET || "smart-saga-secret-default",
     resave: false,
     saveUninitialized: false,
   })
@@ -81,7 +81,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ====================== DATABASE (REKAYASA RAILWAY ENV) ======================
-const dbConfig = {
+// Railway biasanya menyediakan MYSQL_URL atau variabel satuan.
+const dbConfig = process.env.MYSQL_URL || {
   host: process.env.MYSQLHOST || "localhost",
   user: process.env.MYSQLUSER || "root",
   password: process.env.MYSQLPASSWORD || "",
