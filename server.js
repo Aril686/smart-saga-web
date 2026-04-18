@@ -19,6 +19,11 @@ console.log(`👷 Startup Info: Berjalan pada PORT ${PORT}`);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Rute pancingan agar Railway langsung "Happy"
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "smart-saga-secret-default",
@@ -128,19 +133,15 @@ function initMQTT() {
 
     mqttClient = mqtt.connect(options);
 
-    const topic = mqttConfig.mqtt_topic.trim();
-
-    mqttClient.on("connect", () => {
-      console.log("✅ MQTT Connected");
-
-      mqttClient.subscribe(topic, (err) => {
-        if (err) {
-          console.error("❌ Subscribe gagal:", err.message);
-        } else {
-          console.log("📥 SUBSCRIBE:", topic);
-        }
+    const topic = (mqttConfig.mqtt_topic || "absensi/rfid").trim();
+    if (mqttClient) {
+      mqttClient.on("connect", () => {
+        console.log("✅ MQTT connected to broker");
+        mqttClient.subscribe(topic, (err) => {
+          if (!err) console.log(`📡 Subscribed to topic: ${topic}`);
+        });
       });
-    });
+    }
 
     // ==================== handle massage dan setingan jam ==========
     mqttClient.on("message", async (topic, message) => {
