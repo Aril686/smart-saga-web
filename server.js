@@ -219,28 +219,48 @@ app.post("/login", async (req, res) => {
       });
     }
 
-    const db = await mysql.createConnection(dbConfig);
-    const [rows] = await db.execute(
-      `SELECT u.id, u.username, u.password, r.roles AS role
-       FROM users u
-       JOIN roles r ON u.roles_id = r.id
-       WHERE u.username = ?`,
-      [username]
-    );
+    let db;
+    try {
+      db = await mysql.createConnection(dbConfig);
+    } catch (dbErr) {
+      console.error("❌ DATABASE CONNECTION ERROR:", dbErr.message);
+      return res.status(500).json({ success: false, message: "Gagal menyambung ke database" });
+    }
+
+    let rows;
+    try {
+      [rows] = await db.execute(
+        `SELECT u.id, u.username, u.password, r.roles AS role
+         FROM users u
+         JOIN roles r ON u.roles_id = r.id
+         WHERE u.username = ?`,
+        [username]
+      );
+    } catch (sqlErr) {
+      console.error("❌ SQL ERROR:", sqlErr.message);
+      await db.end();
+      return res.status(500).json({ success: false, message: "Gagal membaca data tabel (" + sqlErr.message + ")" });
+    }
     await db.end();
 
-    if (!rows.length) {
+    if (!rows || rows.length === 0) {
       return res.status(400).json({ success: false, message: "User tidak ditemukan" });
     }
 
     const user = rows[0];
+    console.log(`🔍 MEMERIKSA USER: ${user.username} (Role: ${user.role})`);
 
     // Hybrid check: hash bcrypt atau plain text
     let isMatch = false;
-    if (user.password.startsWith('$2b$') || user.password.startsWith('$2a$')) {
-      isMatch = await bcrypt.compare(password, user.password);
-    } else {
-      isMatch = (password === user.password);
+    try {
+      if (user.password.startsWith('$2b$') || user.password.startsWith('$2a$')) {
+        isMatch = await bcrypt.compare(password, user.password);
+      } else {
+        isMatch = (password === user.password);
+      }
+    } catch (passwordErr) {
+      console.error("❌ PASSWORD CHECK ERROR:", passwordErr.message);
+      return res.status(500).json({ success: false, message: "Error saat pencocokan password" });
     }
 
     if (!isMatch) {
