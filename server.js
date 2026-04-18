@@ -80,15 +80,33 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ====================== DATABASE (REKAYASA RAILWAY ENV) ======================
-// Railway biasanya menyediakan MYSQL_URL atau variabel satuan.
-const dbConfig = process.env.MYSQL_URL || {
+// ====================== DATABASE (RAILWAY READY) ======================
+const poolConfig = process.env.MYSQL_URL || {
   host: process.env.MYSQLHOST || "localhost",
   user: process.env.MYSQLUSER || "root",
   password: process.env.MYSQLPASSWORD || "",
-  database: process.env.MYSQLDATABASE || "db_smart-saga(new)",
+  database: process.env.MYSQLDATABASE || "railway",
   port: process.env.MYSQLPORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  // Penting untuk MySQL 8 di Cloud
+  allowPublicKeyRetrieval: true,
+  ssl: process.env.MYSQL_URL ? { rejectUnauthorized: false } : false
 };
+
+const pool = mysql.createPool(poolConfig);
+
+// Test Koneksi saat Start
+(async () => {
+  try {
+    const conn = await pool.getConnection();
+    console.log("✅ DATABASE CONNECTED (Pool Ready)");
+    conn.release();
+  } catch (err) {
+    console.error("❌ DATABASE INITIAL CONNECTION ERROR:", err.message);
+  }
+})();
 
 // ====================== MQTT (REKAYASA RAILWAY ENV) ======================
 const mqttConfig = {
@@ -131,70 +149,57 @@ function initMQTT() {
 
     // ==================== handle massage dan setingan jam ==========
     mqttClient.on("message", async (topic, message) => {
-      let db = null;
       try {
         const payload = JSON.parse(message.toString());
         if (!payload?.rf_id) return;
 
-        db = await mysql.createConnection(dbConfig);
-
         // Ambil setting jam
-        const [[setting]] = await db.execute(`
-      SELECT jam_masuk, jam_pulang FROM setting_jam LIMIT 1
-    `);
+        const [[setting]] = await pool.execute(`
+          SELECT jam_masuk, jam_pulang FROM setting_jam LIMIT 1
+        `);
 
         const now = new Date();
         const jamSekarang = now.toTimeString().slice(0, 8);
 
         // Cek sudah ada absen hari ini atau belum
-        const [cek] = await db.execute(`
-      SELECT * FROM absensi_log
-      WHERE card_uid = ? AND DATE(tanggal) = CURDATE()
-    `, [payload.rf_id]);
+        const [cek] = await pool.execute(`
+          SELECT * FROM absensi_log
+          WHERE card_uid = ? AND DATE(tanggal) = CURDATE()
+        `, [payload.rf_id]);
 
         // ======================
         // ✅ BELUM ABSEN → MASUK
         // ======================
         if (cek.length === 0) {
-          await db.execute(`
-        INSERT INTO absensi_log
-        (card_uid, mac, tanggal, jam_masuk, status)
-        VALUES (?, ?, CURDATE(), ?, 'Hadir')
-      `, [payload.rf_id, payload.mac, jamSekarang]);
+          await pool.execute(`
+            INSERT INTO absensi_log
+            (card_uid, mac, tanggal, jam_masuk, status)
+            VALUES (?, ?, CURDATE(), ?, 'Hadir')
+          `, [payload.rf_id, payload.mac, jamSekarang]);
 
           console.log("✅ MASUK:", payload.rf_id);
         }
-
         // ======================
         // ✅ SUDAH ABSEN → CEK PULANG
         // ======================
         else {
-          // ❌ BELUM WAKTU PULANG
           if (jamSekarang < setting.jam_pulang) {
-            console.log("🚫 hey jangan bolos!!");
-
-            // optional kirim ke mqtt device / buzzer
-            mqttClient.publish("absensi/notif", JSON.stringify({
-              message: "hey jangan bolos!!"
-            }));
-
+            console.log("🚫 jangan bolos!!");
+            mqttClient.publish("absensi/notif", JSON.stringify({ message: "jangan bolos!!" }));
             return;
           }
 
-          // ✅ UPDATE JADI PULANG
-          await db.execute(`
-        UPDATE absensi_log
-        SET jam_masuk = ?, status = 'Pulang'
-        WHERE card_uid = ? AND DATE(tanggal) = CURDATE()
-      `, [jamSekarang, payload.rf_id]);
+          await pool.execute(`
+            UPDATE absensi_log
+            SET jam_masuk = ?, status = 'Pulang'
+            WHERE card_uid = ? AND DATE(tanggal) = CURDATE()
+          `, [jamSekarang, payload.rf_id]);
 
           console.log("🏁 PULANG:", payload.rf_id);
         }
 
       } catch (err) {
-        console.error("MQTT ERROR:", err.message);
-      } finally {
-        if (db) await db.end();
+        console.error("MQTT DB ERROR:", err.message);
       }
     });
 
@@ -211,25 +216,14 @@ async function reconnectMQTT() {
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
-
     if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Username dan password wajib diisi"
-      });
-    }
-
-    let db;
-    try {
-      db = await mysql.createConnection(dbConfig);
-    } catch (dbErr) {
-      console.error("❌ DATABASE CONNECTION ERROR:", dbErr.message);
-      return res.status(500).json({ success: false, message: "Gagal menyambung ke database" });
+      return res.status(400).json({ success: false, message: "Username dan password wajib diisi" });
     }
 
     let rows;
+
     try {
-      [rows] = await db.execute(
+      [rows] = await pool.execute(
         `SELECT u.id, u.username, u.password, r.roles AS role
          FROM users u
          JOIN roles r ON u.roles_id = r.id
@@ -238,17 +232,15 @@ app.post("/login", async (req, res) => {
       );
     } catch (sqlErr) {
       console.error("❌ SQL ERROR:", sqlErr.message);
-      await db.end();
-      return res.status(500).json({ success: false, message: "Gagal membaca data tabel (" + sqlErr.message + ")" });
+      return res.status(500).json({ success: false, message: "Gagal membaca database" });
     }
-    await db.end();
 
     if (!rows || rows.length === 0) {
       return res.status(400).json({ success: false, message: "User tidak ditemukan" });
     }
 
     const user = rows[0];
-    console.log(`🔍 MEMERIKSA USER: ${user.username} (Role: ${user.role})`);
+    console.log(`🔍 LOGIN ATTEMPT: ${user.username} (Role: ${user.role})`);
 
     // Hybrid check: hash bcrypt atau plain text
     let isMatch = false;
@@ -286,12 +278,10 @@ app.post("/login-broker", async (req, res) => {
   const { user, password } = req.body;
 
   try {
-    const db = await mysql.createConnection(dbConfig);
-    const [rows] = await db.execute(
+    const [rows] = await pool.execute(
       "SELECT * FROM broker_config WHERE user=? AND password=? LIMIT 1",
       [user, password]
     );
-    await db.end();
 
     if (!rows.length) {
       return res.send(`
@@ -319,9 +309,7 @@ app.post("/login-broker", async (req, res) => {
 // ======================= setting jam admin ==================
 // GET setting jam
 app.get("/api/setting-jam", async (req, res) => {
-  const db = await mysql.createConnection(dbConfig);
-  const [[data]] = await db.execute(`SELECT * FROM setting_jam LIMIT 1`);
-  await db.end();
+  const [[data]] = await pool.execute(`SELECT * FROM setting_jam LIMIT 1`);
   res.json(data);
 });
 
@@ -329,15 +317,11 @@ app.get("/api/setting-jam", async (req, res) => {
 app.post("/api/setting-jam", auth("admin"), async (req, res) => {
   const { jam_masuk, jam_pulang } = req.body;
 
-  const db = await mysql.createConnection(dbConfig);
-
-  await db.execute(`
+  await pool.execute(`
     UPDATE setting_jam
     SET jam_masuk=?, jam_pulang=?
     WHERE id=1
   `, [jam_masuk, jam_pulang]);
-
-  await db.end();
 
   res.json({ message: "Setting jam berhasil diupdate" });
 });
@@ -346,8 +330,7 @@ app.post("/api/setting-jam", auth("admin"), async (req, res) => {
 // ----- GET all users -----
 app.get("/admin/management_users", auth("admin"), async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
-    const [rows] = await db.execute(`
+    const [rows] = await pool.execute(`
       SELECT 
         u.id,
         u.username,
@@ -357,7 +340,6 @@ app.get("/admin/management_users", auth("admin"), async (req, res) => {
       JOIN roles r ON u.roles_id = r.id
       ORDER BY u.id DESC
     `);
-    await db.end();
 
     res.json(rows);
 
@@ -373,23 +355,18 @@ app.put("/admin/management_users/:id", auth("admin"), async (req, res) => {
     const { id } = req.params;
     const { username, password, roles_id } = req.body;
 
-    const db = await mysql.createConnection(dbConfig);
-
     if (password && password.trim() !== "") {
       const hashed = await bcrypt.hash(password, 10);
-
-      await db.execute(
+      await pool.execute(
         "UPDATE users SET username=?, password=?, roles_id=? WHERE id=?",
         [username, hashed, roles_id, id]
       );
     } else {
-      await db.execute(
+      await pool.execute(
         "UPDATE users SET username=?, roles_id=? WHERE id=?",
         [username, roles_id, id]
       );
     }
-
-    await db.end();
 
     res.json({ message: "User berhasil diupdate" });
 
@@ -404,11 +381,7 @@ app.delete("/admin/management_users/:id", auth("admin"), async (req, res) => {
   try {
     const { id } = req.params;
 
-    const db = await mysql.createConnection(dbConfig);
-
-    await db.execute("DELETE FROM users WHERE id=?", [id]);
-
-    await db.end();
+    await pool.execute("DELETE FROM users WHERE id=?", [id]);
 
     res.json({ message: "User berhasil dihapus" });
 
@@ -421,17 +394,13 @@ app.delete("/admin/management_users/:id", auth("admin"), async (req, res) => {
 // ======================= api lastest =========================
 app.get("/api/latest", async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
-
-    const [rows] = await db.execute(`
+    const [rows] = await pool.execute(`
       SELECT a.card_uid, m.nama, m.kelas, a.jam_masuk, a.tanggal, a.status
       FROM absensi_log a
       LEFT JOIN data_mapping m ON a.card_uid = m.card_uid
       ORDER BY a.id DESC
       LIMIT 5
     `);
-
-    await db.end();
 
     res.json(rows);
 
@@ -444,29 +413,21 @@ app.get("/api/latest", async (req, res) => {
 // ====================== STATISTIK DASHBOARD ======================
 app.get("/api/statistik", async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
-
-    const [rows] = await db.execute(`
+    const [rows] = await pool.execute(`
       SELECT
         COUNT(*) AS total,
-
         SUM(CASE WHEN a.status = 'Hadir' THEN 1 ELSE 0 END) AS hadir,
         SUM(CASE WHEN a.status = 'Alpha' THEN 1 ELSE 0 END) AS alpha,
         SUM(CASE WHEN a.status = 'Telat' THEN 1 ELSE 0 END) AS telat,
-
-        -- IZIN dari tabel perizinan (hari ini & disetujui)
         (
           SELECT COUNT(*)
           FROM perizinan p
           WHERE p.status = 'disetujui'
           AND DATE(p.created_at) = CURDATE()
         ) AS izin
-
       FROM absensi_log a
       WHERE DATE(a.tanggal) = CURDATE()
     `);
-
-    await db.end();
 
     const data = rows[0];
 
@@ -505,14 +466,10 @@ app.get("/logout", (req, res) => {
 // ======================== tambah kartu ======================
 app.post("/api/kartu", auth("admin"), async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
     const { card_uid, nama, kelas } = req.body;
-
-    await db.execute(`
+    await pool.execute(`
       INSERT INTO data_mapping(card_uid, nama, kelas) VALUES (?, ?, ?)`,
       [card_uid, nama, kelas]);
-
-    await db.end();
 
     res.json({
       success: true,
@@ -537,31 +494,25 @@ app.post("/api/absen-manual", async (req, res) => {
       return res.status(400).json({ message: "Nama wajib diisi" });
     }
 
-    const db = await mysql.createConnection(dbConfig);
-
-    // 🔍 ambil card_uid
-    const [user] = await db.execute(
+    const [user] = await pool.execute(
       "SELECT card_uid FROM data_mapping WHERE nama = ? LIMIT 1",
       [nama]
     );
 
     if (!user.length) {
-      await db.end();
       return res.status(404).json({ message: "Nama tidak ditemukan" });
     }
 
     const card_uid = user[0].card_uid;
 
-    // 🔥 ambil setting jam
-    const [[setting]] = await db.execute(`
+    const [[setting]] = await pool.execute(`
       SELECT jam_masuk, jam_pulang FROM setting_jam LIMIT 1
     `);
 
     const now = new Date();
     const jamSekarang = now.toTimeString().slice(0, 8);
 
-    // 🔍 cek sudah absen hari ini
-    const [cek] = await db.execute(`
+    const [cek] = await pool.execute(`
       SELECT * FROM absensi_log
       WHERE card_uid = ? AND DATE(tanggal) = CURDATE()
     `, [card_uid]);
@@ -570,14 +521,12 @@ app.post("/api/absen-manual", async (req, res) => {
     // ✅ BELUM ABSEN → MASUK
     // ======================
     if (cek.length === 0) {
-
-      await db.execute(`
+      await pool.execute(`
         INSERT INTO absensi_log
         (card_uid, mac, tanggal, jam_masuk, status)
         VALUES (?, 'MANUAL', CURDATE(), ?, 'Hadir')
       `, [card_uid, jamSekarang]);
 
-      await db.end();
       return res.json({
         success: true,
         type: "masuk",
@@ -589,7 +538,6 @@ app.post("/api/absen-manual", async (req, res) => {
     // ❌ BELUM JAM PULANG
     // ======================
     if (jamSekarang < setting.jam_pulang) {
-      await db.end();
       return res.status(400).json({
         success: false,
         message: "hey jangan bolos!!"
@@ -599,13 +547,11 @@ app.post("/api/absen-manual", async (req, res) => {
     // ======================
     // ✅ UPDATE JADI PULANG
     // ======================
-    await db.execute(`
+    await pool.execute(`
       UPDATE absensi_log
       SET jam_masuk = ?, status = 'Pulang'
       WHERE card_uid = ? AND DATE(tanggal) = CURDATE()
     `, [jamSekarang, card_uid]);
-
-    await db.end();
 
     return res.json({
       success: true,
@@ -623,34 +569,7 @@ app.get("/api/absensi-rekap", async (req, res) => {
   try {
     const { bulan, tahun } = req.query;
 
-    const db = await mysql.createConnection(dbConfig);
-
-    let query = `
-      SELECT a.*, m.nama, m.kelas
-      FROM absensi_log a
-      LEFT JOIN data_mapping m ON a.card_uid = m.card_uid
-      WHERE 1=1
-    `;
-
-    let params = [];
-
-    // 🔥 filter tahun (opsional)
-    if (tahun && tahun !== "0") {
-      query += ` AND YEAR(a.tanggal) = ?`;
-      params.push(tahun);
-    }
-
-    // 🔥 filter bulan (opsional)
-    if (bulan && bulan !== "0") {
-      query += ` AND MONTH(a.tanggal) = ?`;
-      params.push(bulan);
-    }
-
-    query += ` ORDER BY a.tanggal DESC`;
-
-    const [rows] = await db.execute(query, params);
-
-    await db.end();
+    const [rows] = await pool.execute(query, params);
     res.json(rows);
 
   } catch (err) {
@@ -671,15 +590,11 @@ app.post("/api/users", async (req, res) => {
       });
     }
 
-    const db = await mysql.createConnection(dbConfig);
     const hashed = await bcrypt.hash(password, 10);
-
-    await db.execute(
+    await pool.execute(
       "INSERT INTO users (username, password, roles_id) VALUES (?, ?, ?)",
       [username, hashed, roles_id]
     );
-
-    await db.end();
 
     res.json({
       success: true,
@@ -698,55 +613,26 @@ app.post("/api/users", async (req, res) => {
 // ========================= api perizinan for admin =================
 app.all("/api/perizinan/manage", async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
-
-    // ===================== GET (AMBIL DATA) =====================
     if (req.method === "GET") {
-      const [rows] = await db.execute(`
-        SELECT 
-          id,
-          nama_siswa,
-          kelas_siswa,
-          alasan,
-          bukti,
-          status,
-          created_at
+      const [rows] = await pool.execute(`
+        SELECT id, nama_siswa, kelas_siswa, alasan, bukti, status, created_at
         FROM perizinan
         ORDER BY created_at DESC
       `);
-
-      await db.end();
       return res.json(rows);
     }
 
-    // ===================== POST (UPDATE STATUS) =====================
     if (req.method === "POST") {
       const { id, status } = req.body;
-
       if (!id || !status) {
-        await db.end();
         return res.status(400).json({ message: "ID & status wajib diisi" });
       }
-
       if (!["disetujui", "ditolak"].includes(status)) {
-        await db.end();
         return res.status(400).json({ message: "Status tidak valid" });
       }
-
-      await db.execute(
-        "UPDATE perizinan SET status=? WHERE id=?",
-        [status, id]
-      );
-
-      await db.end();
-
-      return res.json({
-        success: true,
-        message: `Status berhasil diubah menjadi ${status}`
-      });
+      await pool.execute("UPDATE perizinan SET status=? WHERE id=?", [status, id]);
+      return res.json({ success: true, message: `Status berhasil diubah menjadi ${status}` });
     }
-
-    await db.end();
     res.status(405).json({ message: "Method tidak diizinkan" });
 
   } catch (err) {
@@ -758,22 +644,11 @@ app.all("/api/perizinan/manage", async (req, res) => {
 // ====================== API PERIZINAN ======================
 app.get("/api/riwayatperizinan", async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
-
-    const [rows] = await db.execute(`
-      SELECT 
-        id,
-        nama_siswa, 
-        kelas_siswa, 
-        alasan, 
-        bukti,
-        status, 
-        created_at 
+    const [rows] = await pool.execute(`
+      SELECT id, nama_siswa, kelas_siswa, alasan, bukti, status, created_at 
       FROM perizinan
       ORDER BY created_at DESC
     `);
-
-    await db.end();
 
     res.json(rows);
 
@@ -785,23 +660,12 @@ app.get("/api/riwayatperizinan", async (req, res) => {
 
 app.get("/api/riwayatperizinan/:id", async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
     const id = req.params.id;
-
-    const [rows] = await db.execute(`
-      SELECT 
-        id,
-        nama_siswa, 
-        kelas_siswa, 
-        alasan, 
-        bukti,
-        status, 
-        created_at 
+    const [rows] = await pool.execute(`
+      SELECT id, nama_siswa, kelas_siswa, alasan, bukti, status, created_at 
       FROM perizinan 
       WHERE id = ?
     `, [id]);
-
-    await db.end();
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
@@ -817,59 +681,28 @@ app.get("/api/riwayatperizinan/:id", async (req, res) => {
 
 // ====================== ABSENSI ======================
 app.get("/api/absensi", async (req, res) => {
-  let db = null;
   try {
-    db = await mysql.createConnection(dbConfig);
-
-    const [rows] = await db.execute(`
+    const [rows] = await pool.execute(`
       SELECT a.card_uid, m.nama, m.kelas,
              a.mac, a.tanggal, a.jam_masuk, a.status
       FROM absensi_log a
       LEFT JOIN data_mapping m ON a.card_uid = m.card_uid
       ORDER BY a.id DESC
     `);
-
     res.json(rows);
   } catch (err) {
     console.error("GET ABSENSI ERROR:", err);
     res.status(500).json({ message: "Server error" });
-  } finally {
-    if (db) await db.end();
   }
 });
 
 // ============ persentase =======
 app.get("/api/persentase", async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
-
-    // total siswa
-    const [[total]] = await db.execute(`
-      SELECT COUNT(*) as total FROM data_mapping
-    `);
-
-    // hadir dari absensi_log
-    const [[hadir]] = await db.execute(`
-      SELECT COUNT(DISTINCT card_uid) as hadir 
-      FROM absensi_log 
-      WHERE tanggal = CURDATE()
-    `);
-
-    // izin dari perizinan
-    const [[izin]] = await db.execute(`
-      SELECT COUNT(*) as izin 
-      FROM perizinan 
-      WHERE status = 'disetujui' AND alasan = 'izin'
-    `);
-
-    // sakit dari perizinan
-    const [[sakit]] = await db.execute(`
-      SELECT COUNT(*) as sakit 
-      FROM perizinan 
-      WHERE status = 'disetujui' AND alasan = 'sakit'
-    `);
-
-    await db.end();
+    const [[total]] = await pool.execute(`SELECT COUNT(*) as total FROM data_mapping`);
+    const [[hadir]] = await pool.execute(`SELECT COUNT(DISTINCT card_uid) as hadir FROM absensi_log WHERE tanggal = CURDATE()`);
+    const [[izin]] = await pool.execute(`SELECT COUNT(*) as izin FROM perizinan WHERE status = 'disetujui' AND alasan = 'izin'`);
+    const [[sakit]] = await pool.execute(`SELECT COUNT(*) as sakit FROM perizinan WHERE status = 'disetujui' AND alasan = 'sakit'`);
 
     const totalSiswa = total.total || 0;
     const hadirCount = hadir.hadir || 0;
@@ -900,22 +733,12 @@ app.get("/api/persentase", async (req, res) => {
 // ====================== API PERIZINAN ======================
 app.get("/api/riwayatperizinan/:id", async (req, res) => {
   try {
-    const db = await mysql.createConnection(dbConfig);
     const id = req.params.id;
-
-    const [rows] = await db.execute(`
-      SELECT 
-        nama_siswa, 
-        kelas_siswa, 
-        alasan, 
-        bukti,
-        status, 
-        created_at 
+    const [rows] = await pool.execute(`
+      SELECT nama_siswa, kelas_siswa, alasan, bukti, status, created_at 
       FROM perizinan 
       WHERE id = ?
     `, [id]);
-
-    await db.end();
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
@@ -950,16 +773,11 @@ app.post("/api/perizinan", upload.single("bukti"), async (req, res) => {
     }
 
     const bukti = req.file ? req.file.filename : null;
-
-    const db = await mysql.createConnection(dbConfig);
-
-    await db.execute(`
+    await pool.execute(`
       INSERT INTO perizinan 
       (user_id, nama_siswa, kelas_siswa, alasan, bukti, status, created_at)
       VALUES (?, ?, ?, ?, ?, 'pending', NOW())
     `, [userId, nama_siswa, kelas_siswa, alasan, bukti]);
-
-    await db.end();
 
     res.json({
       success: true,
@@ -983,17 +801,12 @@ app.get("/api/export_excel", async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const db = await mysql.createConnection(dbConfig);
-
-    // Ambil data absensi + mapping nama & kelas
-    const [rows] = await db.execute(`
+    const [rows] = await pool.execute(`
       SELECT d.nama, d.kelas, a.card_uid, a.mac, a.tanggal, a.jam_masuk AS jam, a.status
       FROM absensi_log a
       LEFT JOIN data_mapping d ON a.card_uid = d.card_uid
       ORDER BY a.tanggal DESC, a.jam_masuk DESC
     `);
-
-    await db.end();
 
     // Buat workbook Excel
     const workbook = new ExcelJs.Workbook();
@@ -1051,22 +864,13 @@ app.get("/api/export_excelBulan", auth("admin"), async (req, res) => {
     const bulan = parseInt(req.query.bulan) || new Date().getMonth() + 1;
     const tahun = parseInt(req.query.tahun) || new Date().getFullYear();
 
-    const db = await mysql.createConnection(dbConfig);
-
-    const [rows] = await db.execute(`
-      SELECT 
-        m.nama,
-        m.kelas,
-        a.tanggal,
-        a.jam_masuk,
-        a.status
+    const [rows] = await pool.execute(`
+      SELECT m.nama, m.kelas, a.tanggal, a.jam_masuk, a.status
       FROM absensi_log a
       LEFT JOIN data_mapping m ON a.card_uid = m.card_uid
       WHERE MONTH(a.tanggal) = ? AND YEAR(a.tanggal) = ?
       ORDER BY a.tanggal DESC
     `, [bulan, tahun]);
-
-    await db.end();
 
     const workbook = new ExcelJs.Workbook();
     const sheet = workbook.addWorksheet("Rekap Bulanan");
