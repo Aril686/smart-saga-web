@@ -232,7 +232,7 @@ app.post("/login", async (req, res) => {
       );
     } catch (sqlErr) {
       console.error("❌ SQL ERROR:", sqlErr.message);
-      return res.status(500).json({ success: false, message: "Gagal membaca database" });
+      return res.status(500).json({ success: false, message: "Gagal membaca database: " + sqlErr.message });
     }
 
     if (!rows || rows.length === 0) {
