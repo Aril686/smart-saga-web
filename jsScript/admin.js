@@ -1,10 +1,4 @@
-/* ================= JAM ================= */
-setInterval(() => {
-  const jam = document.getElementById("realtime-clock");
-  if (jam) {
-    jam.innerText = new Date().toLocaleTimeString("id-ID");
-  }
-}, 1000);
+/* ================= JAM MOVED TO COMMON.JS ================= */
 
 
 /* ================= STATISTIK ================= */
@@ -152,12 +146,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setInterval(loadLatest, 3000);
   setInterval(loadAbsensi, 5000);
+
+  // Sidebar logic moved to common.js
 });
-
-
-/* ================= LOGOUT ================= */
-function logout() {
-  if (confirm("Yakin nih ingin logout?")) {
-    window.location.href = "login.html";
-  }
-}

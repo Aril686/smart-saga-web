@@ -1,4 +1,5 @@
 
+require("dotenv").config();
 // ====================== IMPORT ======================
 const express = require("express");
 const path = require("path");
@@ -267,6 +268,16 @@ app.post("/login", async (req, res) => {
     console.error("Login error:", error);
     return res.status(500).json({ success: false, message: "Terjadi kesalahan pada server" });
   }
+});
+
+// ====================== LOGOUT ======================
+app.get("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("❌ LOGOUT ERROR:", err);
+    }
+    res.redirect("/public/login.html");
+  });
 });
 
 // ====================== BROKER CONFIG ======================

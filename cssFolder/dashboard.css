@@ -691,3 +691,67 @@ input:focus, select:focus {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+/* ========================================================= */
+/* 📱 RESPONSIVE MOBILE - BY ANTIGRAVITY 📱 */
+/* ========================================================= */
+
+@media (max-width: 992px) {
+  .main-content {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column !important;
+    gap: 15px !important;
+    padding: 15px !important;
+    text-align: center !important;
+  }
+
+  .logo-container h1 {
+    font-size: 1.4rem !important;
+    justify-content: center !important;
+  }
+
+  .time-display {
+    width: 100% !important;
+    font-size: 1.1rem !important;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
+  }
+
+  .stat-card {
+    padding: 20px !important;
+  }
+
+  .stat-value {
+    font-size: 2.2rem !important;
+  }
+
+  .dashboard-header {
+    flex-direction: column !important;
+    gap: 15px !important;
+    align-items: flex-start !important;
+  }
+
+  .container {
+    padding: 0 15px !important;
+    margin: 20px auto !important;
+  }
+
+  .modal-box {
+    width: 98% !important;
+    margin: 5px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .kelas-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

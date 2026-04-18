@@ -62,7 +62,11 @@ CREATE TABLE IF NOT EXISTS `broker_config` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `user` VARCHAR(50),
   `password` VARCHAR(50),
-  `host` VARCHAR(100)
+  `host` VARCHAR(100),
+  `port` INT DEFAULT 1883,
+  `virtual_host` VARCHAR(100),
+  `queue_device` VARCHAR(100),
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ==========================================================
@@ -85,6 +89,6 @@ INSERT INTO `users` (`username`, `password`, `roles_id`) VALUES
 INSERT INTO `setting_jam` (`jam_masuk`, `jam_pulang`) VALUES 
 ('07:00:00', '15:00:00');
 
--- Masukkan Broker Config Awal
-INSERT INTO `broker_config` (`user`, `password`, `host`) VALUES 
-('admin', 'admin', 'localhost');
+-- Masukkan Broker Config Awal (HiveMQ Cloud)
+INSERT INTO `broker_config` (`id`, `user`, `password`, `host`, `port`, `virtual_host`, `queue_device`, `created_at`) VALUES 
+(38, 'school-absensi', 'School12', 'd4074ff835754387b943f21e95168512.s1.eu.hivemq.cloud', 1883, 'absensi/rfid', 'absensi/control', '2026-02-27 09:31:04');

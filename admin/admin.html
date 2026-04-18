@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Saga | Dashboard Absensi</title>
   <link rel="stylesheet" href="../cssFolder/admin.css"/>
+  <script src="../jsScript/common.js"></script>
 </head>
 
 <body>
@@ -27,7 +28,7 @@
 
   <!-- LOGOUT -->
   <div class="sidebar-bottom">
-    <a href="login.html" class="" onclick="logout()">🚪 Logout</a>
+    <a href="javascript:void(0)" class="logout-btn" onclick="logout()">🚪 Logout</a>
   </div>
 </div>
 
@@ -35,7 +36,10 @@
 <div class="content">
 
   <div class="navbar">
-    <h1>📊 Dashboard Absensi Smart Saga</h1>
+    <div class="nav-left">
+      <button class="menu-toggle" id="menu-toggle">☰</button>
+      <h1>📊 Dashboard Absensi Smart Saga</h1>
+    </div>
     <div class="time-display" id="realtime-clock">00:00:00</div>
   </div>
 

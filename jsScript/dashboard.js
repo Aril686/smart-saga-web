@@ -1,20 +1,5 @@
 // ====================== DASHBOARD.JS ======================
 
-// Real-time clock
-function updateClock() {
-  const now = new Date();
-  const timeString = now.toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-  const clockElement = document.getElementById("realtime-clock");
-  if (clockElement) clockElement.innerText = timeString;
-}
-
-setInterval(updateClock, 1000);
-updateClock();
-
 // Form submission
 document.getElementById("formIzin")?.addEventListener("submit", function (e) {
   e.preventDefault();
@@ -116,11 +101,15 @@ async function loadStatistik() {
   const res = await fetch("/api/statistik");
   const data = await res.json();
 
-  document.getElementById("total-hadir").innerText = data.hadir;
-  document.getElementById("total-izin").innerText = data.izin;
-  document.getElementById("total-alpha").innerText = data.alpha;
-  document.getElementById("persentase-kehadiran").innerText =
-    data.persentase + "%";
+  const hadir = document.getElementById("total-hadir");
+  const izin = document.getElementById("total-izin");
+  const alpha = document.getElementById("total-alpha");
+  const persen = document.getElementById("persentase-kehadiran");
+
+  if (hadir) hadir.innerText = data.hadir;
+  if (izin) izin.innerText = data.izin;
+  if (alpha) alpha.innerText = data.alpha;
+  if (persen) persen.innerText = data.persentase + "%";
 }
 loadStatistik();
 setInterval(loadStatistik, 5000);
@@ -132,10 +121,12 @@ async function loadLatest() {
   const data = await res.json();
 
   const latestBox = document.querySelector(".latest-tap");
+  if (!latestBox) return;
+
   latestBox.innerHTML = `<h2>🔔 Tap Terbaru</h2>` +
     data.map(d => `
       <p><b>${d.nama || "Unknown"}</b><br>
-      ${tanggalIndo(d.tanggal)} ${d.jam_masuk} ${d.kelas}</p>
+      ${tanggalIndo(d.tanggal)} ${d.jam_masuk} ${d.kelas || ""}</p>
     `).join("");
 }
 
@@ -164,10 +155,9 @@ async function absenNama() {
       return;
     }
 
-    // tampilkan sukses
-    document.getElementById("btnAbsen").style.display = "block";
+    const btn = document.getElementById("btnAbsen");
+    if (btn) btn.style.display = "block";
 
-    // reset input
     document.getElementById("namaInput").value = "";
 
   } catch (err) {
@@ -214,10 +204,9 @@ function closeIzinPopup() {
 
 // ====================== INIT ======================
 loadLatest();
-window.onload = function () {
-  console.log("Dashboard initialized");
-};
+setInterval(loadLatest, 3000);
 
-// global
+// global assignments moved to script bottom or common.js
 window.openIzinPopup = openIzinPopup;
 window.closeIzinPopup = closeIzinPopup;
+window.absenNama = absenNama;
