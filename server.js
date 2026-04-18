@@ -101,16 +101,7 @@ const poolConfig = process.env.MYSQL_URL || {
 
 const pool = mysql.createPool(poolConfig);
 
-// Test Koneksi saat Start
-(async () => {
-  try {
-    const conn = await pool.getConnection();
-    console.log("✅ DATABASE CONNECTED (Pool Ready)");
-    conn.release();
-  } catch (err) {
-    console.error("❌ DATABASE INITIAL CONNECTION ERROR:", err.message);
-  }
-})();
+// (Pengecekan koneksi dipindah ke bawah setelah server listen)
 
 // ====================== MQTT (REKAYASA RAILWAY ENV) ======================
 const mqttConfig = {
@@ -928,5 +919,17 @@ app.use((req, res, next) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Smart Saga Server Ready!`);
   console.log(`📡 Listening on PORT: ${PORT}`);
+
+  // Jalankan MQTT & Cek DB setelah server menyala (Non-blocking startup)
   initMQTT();
+
+  (async () => {
+    try {
+      const conn = await pool.getConnection();
+      console.log("✅ DATABASE CONNECTED (Pool Ready)");
+      conn.release();
+    } catch (err) {
+      console.error("❌ DATABASE INITIAL CONNECTION ERROR:", err.message);
+    }
+  })();
 });
