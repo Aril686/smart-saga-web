@@ -615,32 +615,35 @@ app.post("/api/users", async (req, res) => {
 });
 
 // ========================= api perizinan for admin =================
-app.all("/api/perizinan/manage", async (req, res) => {
+// GET: Ambil data perizinan
+app.get("/api/perizinan/manage", auth("admin"), async (req, res) => {
   try {
-    if (req.method === "GET") {
-      const [rows] = await pool.execute(`
-        SELECT id, nama_siswa, kelas_siswa, alasan, bukti, status, created_at
-        FROM perizinan
-        ORDER BY created_at DESC
-      `);
-      return res.json(rows);
-    }
-
-    if (req.method === "POST") {
-      const { id, status } = req.body;
-      if (!id || !status) {
-        return res.status(400).json({ message: "ID & status wajib diisi" });
-      }
-      if (!["disetujui", "ditolak"].includes(status)) {
-        return res.status(400).json({ message: "Status tidak valid" });
-      }
-      await pool.execute("UPDATE perizinan SET status=? WHERE id=?", [status, id]);
-      return res.json({ success: true, message: `Status berhasil diubah menjadi ${status}` });
-    }
-    res.status(405).json({ message: "Method tidak diizinkan" });
-
+    const [rows] = await pool.execute(`
+      SELECT id, nama_siswa, kelas_siswa, alasan, bukti, status, created_at
+      FROM perizinan
+      ORDER BY created_at DESC
+    `);
+    res.json(rows);
   } catch (err) {
-    console.error("PERIZINAN API ERROR:", err.message);
+    console.error("PERIZINAN GET ERROR:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST: Update status perizinan
+app.post("/api/perizinan/manage", auth("admin"), async (req, res) => {
+  try {
+    const { id, status } = req.body;
+    if (!id || !status) {
+      return res.status(400).json({ message: "ID & status wajib diisi" });
+    }
+    if (!["disetujui", "ditolak"].includes(status)) {
+      return res.status(400).json({ message: "Status tidak valid" });
+    }
+    await pool.execute("UPDATE perizinan SET status=? WHERE id=?", [status, id]);
+    res.json({ success: true, message: `Status berhasil diubah menjadi ${status}` });
+  } catch (err) {
+    console.error("PERIZINAN POST ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
