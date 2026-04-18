@@ -13,6 +13,7 @@ const auth = require("./auth");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+console.log(`👷 Startup Info: Berjalan pada PORT ${PORT}`);
 
 // ====================== MIDDLEWARE ======================
 app.use(express.urlencoded({ extended: true }));
