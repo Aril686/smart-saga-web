@@ -5,7 +5,7 @@ const path = require("path");
 const mysql = require("mysql2/promise");
 const mqtt = require("mqtt");
 const session = require("express-session");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const multer = require("multer");
 const crypto = require("crypto");
 const ExcelJs = require("exceljs");
@@ -917,6 +917,7 @@ app.use((req, res, next) => {
 });
 
 // ====================== START SERVER ======================
+// Listen di 0.0.0.0 agar bisa diakses secara publik di Railway
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Smart Saga Server Ready!`);
   console.log(`📡 Listening on PORT: ${PORT}`);
